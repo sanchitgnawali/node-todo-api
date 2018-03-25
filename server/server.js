@@ -1,10 +1,11 @@
-var express = require('express');
-var bodyParser = require('body-parser');
+const express = require('express');
+const bodyParser = require('body-parser');
+const _ = require('lodash');
 
-var {mongoose} = require('./db/mongoose');
-var {Todo} = require('./models/todo');
-var {User} = require('./models/user');
-var {ObjectId} = require('mongodb');
+const {mongoose} = require('./db/mongoose');
+const {Todo} = require('./models/todo');
+const {User} = require('./models/user');
+const {ObjectId} = require('mongodb');
 
 var app = express();
 app.use(bodyParser());
@@ -69,6 +70,50 @@ app.delete('/todos/:id',(req,res)=>{
     }).catch((e)=>{
         res.status(400).send();
     });    
+});
+
+
+//updating a doc
+app.path('/todos/:id',(req,res)=>{
+    var id = req.params.id;
+    var body = _.pick(req.body,['text','completed']);
+
+    if(!ObjectId.isValid(id)) {
+        return res.status(404).send();
+    }
+    if(_.isBoolean(body.completed) && body.completed) {
+        body.completedAt = new Date().getTime();
+    } else {
+        body.completed = false;
+        body.completedAt = null;
+    }
+})
+
+//updating a collection
+app.patch('/todos/:id',(req,res)=>{
+
+    var id = req.params.id;
+    var body = _.pick(req.body,['text','completed']);
+
+    if(!ObjectId.isValid(id)) {
+        return res.status(404).send();
+    }
+    
+    if(_.isBoolean(body.completed) && body.completed) {
+        body.completedAt = new Date().getTime();
+    } else {
+        body.completed = false;
+        body.completedAt = null;
+    }
+
+    Todo.findByIdAndUpdate(id,{$set:body},{new:true}).then((todo)=>{
+        if(!todo) {
+            return res.status(404).send();
+        }
+            return res.send({todo});
+    }).catch((e)=>{
+        res.status(400).send();
+    });
 });
 
 
